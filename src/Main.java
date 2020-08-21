@@ -1,57 +1,47 @@
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class Main {
 
+    private static final int TAG_STARTS_AT = 4;
+    private static final int TAG_ENDS_AT = 16;
+    private static final int TIMESTAMP_STARTS_AT = 20;
+    private static final int TIMESTAMP_ENDS_AT = 32;
+
+
+
+    private static Function<String, String> tagSubstringLogic() {
+        return x -> x.substring(TAG_STARTS_AT, TAG_ENDS_AT);
+    }
+
+    private static Function<String, Long> unixTimeParsingLogic() {
+        return x -> Long.parseLong(x.substring(TIMESTAMP_STARTS_AT, TIMESTAMP_ENDS_AT));
+    }
 
 
     public static void main(String[] args) throws IOException {
-        System.out.println(new Main().listOfUsers());
-    }
 
-    private List<String> listOfUsers() throws IOException {
+        Map<String, Long> start = Files.readAllLines(Paths.get("data/tag_read_start.log"))
+                //getting mapped data from start file <Tag, Time> (when key conflict, take the first one)
+                .stream().collect(Collectors.toMap(tagSubstringLogic(), unixTimeParsingLogic(), (o1, o2) -> o1));
 
-        final List<String> startStrings = Files.readAllLines(Paths.get("data/tag_read_start.log"));
-        final List<String> finishStrings = Files.readAllLines(Paths.get("data/tag_reads_finish.log"));
+        //getting mapped data from finish file <Tag, Time> (when key conflict, take the second one)
+        Map<String, Long> finish = Files.readAllLines(Paths.get("data/tag_reads_finish.log"))
+                .stream().collect(Collectors.toMap(tagSubstringLogic(), unixTimeParsingLogic(), (o1, o2) -> o2));
 
-        //getting mapped data from finish file <Tag, Time>
-        final Map<String, Long> finishMap = startStrings.stream()
-                .collect(Collectors.groupingBy(x -> x.substring(4, 16), (Collectors.maxBy(Comparator.comparing(x -> (x.substring(20, 32)))))))
-                .entrySet().stream().filter(k -> k.getValue().isPresent())
-                .collect(Collectors.toMap(Map.Entry::getKey, x -> Long.parseLong(x.getValue().get().substring(20, 32))));
-
-
-        //getting mapped data from start file <Tag, Time>
-        final Map<String, Long> startingMap = finishStrings.stream()
-                .collect(Collectors.groupingBy(x -> x.substring(4, 16), (Collectors.minBy(Comparator.comparing(x -> x.substring(20, 32))))))
-                .entrySet().stream().filter(k -> k.getValue().isPresent())
-                .collect(Collectors.toMap(Map.Entry::getKey, x -> Long.parseLong(x.getValue().get().substring(20, 32))));
-
-        //merging two maps
-        final Map<String, Long> resultMap = Stream.of(finishMap, startingMap)
-                .flatMap(map -> map.entrySet().stream())
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        Map.Entry::getValue,
-                        (mapVal, map2Val) -> (mapVal - map2Val)
-                ));
-
-        //getting new LinkedHashMap sorted by values
-        final LinkedHashMap<String, Long> collected = resultMap.entrySet().stream().sorted(Map.Entry.comparingByValue())
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
-                        (e1, e2) -> e1, LinkedHashMap::new));
-
-
-        //getting result from sorted map, - first 10 tags (with the lowest numbers of time
-        final List<String> result = collected.keySet().stream().limit(10).collect(Collectors.toList());
-
-        return result;
+        //combining two streams
+        Stream.of(finish, start).flatMap(map -> map.entrySet().stream())
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (map1Val, map2Val) -> (map1Val - map2Val)))
+                .entrySet().stream().sorted(Map.Entry.comparingByValue())
+                .limit(10).forEach(x -> System.out.println(
+                        "The participant with tag " + x.getKey() +
+                                ", took " + TimeUnit.MILLISECONDS.toSeconds(x.getValue()) +
+                                " seconds, (" + x.getValue() + " milliseconds) to complete the test."));
     }
 }
