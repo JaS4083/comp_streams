@@ -9,14 +9,20 @@ We held a competition and have logs from finish and start with ids of participan
 TagRead example:
 
 aaE4058001c6df0700011608131047512800FS
+
 ----058001c6df07----160813104751------
 
 
-//Index start from 0
-TAG_STARTS_AT = 4;
-TAG_ENDS_AT = 16; //exclusive
-TIMESTAMP_STARTS_AT = 20;
-TIMESTAMP_ENDS_AT = 32; //exclusive
 
-Timestamp parsing pattern: "yyMMddHHmmss"
+//Index start from 0
+
+*TAG_STARTS_AT = 4;*
+
+*TAG_ENDS_AT = 16;* //exclusive
+
+*TIMESTAMP_STARTS_AT = 20;*
+
+TIMESTAMP_ENDS_AT = 32; //exclusive 
+
+Timestamp parsing pattern: "yyMMddHHmmss" 
 
