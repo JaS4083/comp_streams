@@ -36,12 +36,14 @@ public class Main {
                 .stream().collect(Collectors.toMap(tagSubstringLogic(), unixTimeParsingLogic(), (o1, o2) -> o2));
 
         //combining two streams
-        Stream.of(finish, start).flatMap(map -> map.entrySet().stream())
+        Stream.concat(finish.entrySet().stream(), start.entrySet().stream())
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (map1Val, map2Val) -> (map1Val - map2Val)))
+                //sorting entry set to get sorted order by values from min to max
                 .entrySet().stream().sorted(Map.Entry.comparingByValue())
                 .limit(10).forEach(x -> System.out.println(
-                        "The participant with tag " + x.getKey() +
-                                ", took " + TimeUnit.MILLISECONDS.toSeconds(x.getValue()) +
-                                " seconds, (" + x.getValue() + " milliseconds) to complete the test."));
+                "The participant with tag " + x.getKey() +
+                        ", took " + TimeUnit.MILLISECONDS.toSeconds(x.getValue()) +
+                        " seconds, (" + x.getValue() + " milliseconds) to complete the test."));
+
     }
 }
